@@ -2,12 +2,11 @@
 
 ;; 
 
-(provide access-token limit-query-string api-get api-post api-patch)
+(provide limit-query-string api-get api-post api-patch)
 
 (require net/http-client)
 (require json)
-
-(define access-token (make-parameter #f))
+(require "access.rkt")
 
 (define http-too-many-requests 429)
 (define retry-delay 1)
@@ -42,17 +41,18 @@
                  #:method #"GET"
                  #:headers (list (create-auth-header)))])
     (let-values ([(status reason) (parse-status-line status-line)])
-      (let ([body (read-json data-port)])
-        (cond
-          [(member status expected-status) body]
-          [(equal? status http-too-many-requests)
-           (printf "Retry: status ~s; ~s; delay ~s~n" status reason retry-delay)
-           (sleep retry-delay)
-           ;; TODO use the delay from Retry-After
-           ;; Have some limit on retries
-           (api-get uri expected-status)]
-          [else
-           (error (format "invalid HTTP status ~s; ~s; ~s~n~s"status reason uri body))])))))
+      (cond
+        [(member status expected-status)
+         (let ([body (read-json data-port)])
+           body)]
+        [(equal? status http-too-many-requests)
+         (printf "Retry: status ~s; ~s; delay ~s~n" status reason retry-delay)
+         (sleep retry-delay)
+         ;; TODO use the delay from Retry-After
+         ;; Have some limit on retries
+         (api-get uri expected-status)]
+        [else
+         (error (format "invalid HTTP status ~s; ~s; ~s"status reason uri))]))))
 
 ;; generic HTTP POST of URI and JSON data
 (define (api-post uri data [expected-status (list 200)])
@@ -69,17 +69,18 @@
                                    "Content-Type: application/json")
                    #:data post-data)])
       (let-values ([(status reason) (parse-status-line status-line)])
-        (let ([body (read-json data-port)])
-          (cond
-            [(member status expected-status) body]
-            [(equal? status http-too-many-requests)
-             (printf "Retry: status ~s; ~s; delay ~s~n" status reason retry-delay)
-             (sleep retry-delay)
-             ;; TODO use the delay from Retry-After
-             ;; Have some limit on retries
-             (api-post uri data expected-status)]
-            [else
-             (error (format "invalid HTTP status ~s; ~s; ~s~n~s"status reason uri body))]))))))
+        (cond
+          [(member status expected-status)
+           (let ([body (read-json data-port)])
+             body)]
+          [(equal? status http-too-many-requests)
+           (printf "Retry: status ~s; ~s; delay ~s~n" status reason retry-delay)
+           (sleep retry-delay)
+           ;; TODO use the delay from Retry-After
+           ;; Have some limit on retries
+           (api-post uri data expected-status)]
+          [else
+           (error (format "invalid HTTP status ~s; ~s; ~s"status reason uri))])))))
 
 ;; generic HTTP PATCH of URI and JSON data
 (define (api-patch uri data [expected-status (list 200)])
@@ -96,14 +97,15 @@
                                    "Content-Type: application/json")
                    #:data patch-data)])
       (let-values ([(status reason) (parse-status-line status-line)])
-        (let ([body (read-json data-port)])
-          (cond
-            [(member status expected-status) body]
-            [(equal? status http-too-many-requests)
-             (printf "Retry: status ~s; ~s; delay ~s~n" status reason retry-delay)
-             (sleep retry-delay)
-             ;; TODO use the delay from Retry-After
-             ;; Have some limit on retries
-             (api-patch uri data expected-status)]
-            [else
-             (error (format "invalid HTTP status ~s; ~s; ~s~n~s"status reason uri body))]))))))
+        (cond
+          [(member status expected-status)
+           (let ([body (read-json data-port)])
+             body)]
+          [(equal? status http-too-many-requests)
+           (printf "Retry: status ~s; ~s; delay ~s~n" status reason retry-delay)
+           (sleep retry-delay)
+           ;; TODO use the delay from Retry-After
+           ;; Have some limit on retries
+           (api-patch uri data expected-status)]
+          [else
+           (error (format "invalid HTTP status ~s; ~s; ~s"status reason uri))])))))
