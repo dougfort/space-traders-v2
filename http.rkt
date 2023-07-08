@@ -28,7 +28,7 @@
 ;; Authorization: Bearer <access-token>
 (define (create-auth-header)
   (let ([token (access-token)])
-    (unless token (error "no access tokan"))
+    (unless token (error "no access token"))
     (string-append "Authorization: "
                    (string-append "Bearer " token))))
 
