@@ -27,9 +27,10 @@
 
 ;; Authorization: Bearer <access-token>
 (define (create-auth-header)
-  (unless access-token (error "no access tokan"))
-  (string-append "Authorization: "
-                 (string-append "Bearer " (access-token))))
+  (let ([token (access-token)])
+    (unless token (error "no access tokan"))
+    (string-append "Authorization: "
+                   (string-append "Bearer " token))))
 
 ;; generic HTTP GET of URI
 (define (api-get uri [expected-status (list 200)])
